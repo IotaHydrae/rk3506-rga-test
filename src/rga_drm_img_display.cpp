@@ -103,16 +103,11 @@ int main()
 	printf("prime fd = %d\n", prime_fd);
 
 	int src_width, src_height, src_format;
-	int dst_width, dst_height, dst_format;
-	long src_phy, dst_phy;
-	int src_alloc_flags = 0, dst_alloc_flags = 0;
-
-	int src_buf_size, dst_buf_size;
+	int src_alloc_flags = 0;
+	int src_buf_size;
 	DrmObject drm_src;
-	DrmObject drm_dst;
-
-	rga_buffer_t src_img, dst_img, fb_img;
-	rga_buffer_handle_t src_handle, dst_handle, fb_handle;
+	rga_buffer_t src_img, fb_img;
+	rga_buffer_handle_t src_handle, fb_handle;
 
 	memset(&src_img, 0, sizeof(src_img));
 	src_width = 480;
@@ -131,7 +126,7 @@ int main()
 		&drm_src.drm_buffer_fd, &drm_src.drm_buffer_handle,
 		&drm_src.actual_size, src_alloc_flags);
 
-	src_phy = drm_buf_get_phy(drm_src.drm_buffer_handle);
+	drm_buf_get_phy(drm_src.drm_buffer_handle);
 	/* fill image data */
 	if (0 != read_image_from_file(drm_src.drm_buf, LOCAL_FILE_PATH,
 				      src_width, src_height, src_format, 0)) {
@@ -155,17 +150,14 @@ int main()
 
 	ret = imcopy(src_img, fb_img);
 
-release_buffer:
 	if (src_handle)
 		releasebuffer_handle(src_handle);
 	if (fb_handle)
 		releasebuffer_handle(fb_handle);
 
-drm_buf_destroy:
 	drm_buf_destroy(drm_src.drm_buffer_fd, drm_src.drm_buffer_handle,
 			drm_src.drm_buf, drm_src.actual_size);
 
-out:
 	close(drm_fd);
 	return 0;
 }
