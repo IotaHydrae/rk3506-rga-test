@@ -1,4 +1,10 @@
-SET(TOOLCHAIN_HOME "/home/developer/luckfox/lyra/buildroot/output/rockchip_rk3506_luckfox/host")
+# Use RGA_TOOLCHAIN_HOME env var if set, otherwise fall back to default
+IF(DEFINED ENV{RGA_TOOLCHAIN_HOME})
+    SET(TOOLCHAIN_HOME "$ENV{RGA_TOOLCHAIN_HOME}")
+ELSE()
+    SET(TOOLCHAIN_HOME "/home/developer/luckfox/lyra/buildroot/output/rockchip_rk3506_luckfox/host")
+ENDIF()
+
 SET(TOOLCHAIN_NAME "arm-buildroot-linux-gnueabihf")
 
 # this is required

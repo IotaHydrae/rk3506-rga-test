@@ -6,7 +6,7 @@ if (EXISTS ${BUILD_TOOLCHAINS_PATH})
 endif()
 
 if (EXISTS ${LIBRGA_FILE_LIB}/librga.so)
-	message("load ${LIBRGA_FILE_LIB}/librga.so")
+    message("load ${LIBRGA_FILE_LIB}/librga.so")
     set(RGA_LIB ${LIBRGA_FILE_LIB}/librga.so)
 else ()
     set(RGA_LIB rga)
@@ -15,25 +15,34 @@ endif()
 get_filename_component(TARGET_NAME ${CMAKE_CURRENT_LIST_DIR} NAME)
 project(rga_${TARGET_NAME})
 
-#install path
 if (NOT DEFINED CMAKE_INSTALL_BINDIR)
     set(CMAKE_INSTALL_BINDIR bin)
 endif()
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wl,--allow-shlib-undefined -ldl")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wl,--allow-shlib-undefined -ldl")
+set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS}   -Wall -Wunused-function -Wunused-variable -Wl,--allow-shlib-undefined")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wunused-function -Wunused-variable -std=c++11 -Wl,--allow-shlib-undefined")
 
-set(RGA_INCLUDE
+include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}/include
-    # ${CMAKE_CURRENT_SOURCE_DIR}/../../im2d_api
+    ${CMAKE_CURRENT_SOURCE_DIR}/utils
+    ${CMAKE_CURRENT_SOURCE_DIR}/utils/allocator/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/utils/3rdparty/libdrm/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/utils/3rdparty/libdrm/include/libdrm
 )
-include_directories(${RGA_INCLUDE})
-
-if (NOT DEFINED RGA_SAMPLES_UTILS_COMPILED)
-    include(${CMAKE_CURRENT_SOURCE_DIR}/utils/CMakeLists.txt)
-endif()
 
 string(REPLACE "-DANDROID" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
 
-add_subdirectory(src)
+# utils static library — shared by all test programs
+add_library(rga_utils STATIC
+    utils/utils.cpp
+    utils/allocator/drm_alloc.cpp
+    utils/allocator/dma_alloc.cpp
+)
 
+# auto-discover test programs under src/
+file(GLOB TEST_SOURCES src/*.cpp)
+foreach(TEST_SRC ${TEST_SOURCES})
+    get_filename_component(TEST_NAME ${TEST_SRC} NAME_WE)
+    add_executable(${TEST_NAME} ${TEST_SRC})
+    target_link_libraries(${TEST_NAME} rga_utils ${RGA_LIB} drm dl)
+endforeach()
