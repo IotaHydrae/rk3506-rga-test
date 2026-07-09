@@ -63,23 +63,39 @@ static int drm_to_rga_format(uint32_t fourcc)
 
 int main()
 {
-	int drm_fd = open("/dev/dri/card0", O_RDWR);
+	int ret = 0;
+	int drm_fd = -1;
+	int prime_fd = -1;
+	drmModeRes *res = NULL;
+	drmModeCrtc *crtc = NULL;
+	drmModeFB2 *fb2 = NULL;
+	rga_buffer_handle_t src_handle = 0;
+	rga_buffer_handle_t fb_handle = 0;
+	DrmObject drm_src = {};
+	bool src_allocated = false;
+	int src_width, src_height, src_format;
+	int src_alloc_flags = 0;
+	int src_buf_size;
+	rga_buffer_t src_img, fb_img;
+	int rga_fmt;
+
+	drm_fd = open("/dev/dri/card0", O_RDWR);
 	if (drm_fd < 0) {
 		perror("open drm");
 		return -1;
 	}
 
-	drmModeRes *res = drmModeGetResources(drm_fd);
+	res = drmModeGetResources(drm_fd);
 
 	printf("crtcs      : %d\n", res->count_crtcs);
 	printf("connectors : %d\n", res->count_connectors);
 	printf("encoders   : %d\n", res->count_encoders);
 
-	drmModeCrtc *crtc = drmModeGetCrtc(drm_fd, 71);
+	crtc = drmModeGetCrtc(drm_fd, 71);
 
 	printf("fb=%u\n", crtc->buffer_id);
 
-	drmModeFB2 *fb2 = drmModeGetFB2(drm_fd, crtc->buffer_id);
+	fb2 = drmModeGetFB2(drm_fd, crtc->buffer_id);
 
 	printf("width  = %u\n", fb2->width);
 	printf("height = %u\n", fb2->height);
@@ -89,25 +105,16 @@ int main()
 	printf("pitch  = %u\n", fb2->pitches[0]);
 	printf("offset = %u\n", fb2->offsets[0]);
 
-	int rga_fmt = drm_to_rga_format(fb2->pixel_format);
+	rga_fmt = drm_to_rga_format(fb2->pixel_format);
 
-	int prime_fd;
-	int ret = drmPrimeHandleToFD(drm_fd, fb2->handles[0], DRM_CLOEXEC,
-				     &prime_fd);
+	ret = drmPrimeHandleToFD(drm_fd, fb2->handles[0], DRM_CLOEXEC, &prime_fd);
 
 	if (ret) {
 		perror("drmPrimeHandleToFD");
-		return -1;
+		goto cleanup;
 	}
 
 	printf("prime fd = %d\n", prime_fd);
-
-	int src_width, src_height, src_format;
-	int src_alloc_flags = 0;
-	int src_buf_size;
-	DrmObject drm_src;
-	rga_buffer_t src_img, fb_img;
-	rga_buffer_handle_t src_handle, fb_handle;
 
 	memset(&src_img, 0, sizeof(src_img));
 	src_width = 480;
@@ -118,13 +125,14 @@ int main()
 	src_alloc_flags |= RGA_UTILS_ROCKCHIP_BO_CONTIG;
 
 	/*
-	* Allocate a physically continuous drm_buf, return dma_fd and
-	* virtual address, and get the physical address.
-	*/
+	 * Allocate a physically continuous drm_buf, return dma_fd and
+	 * virtual address, and get the physical address.
+	 */
 	drm_src.drm_buf = (uint8_t *)drm_buf_alloc(
 		src_width, src_height, get_bpp_from_format(src_format) * 8,
 		&drm_src.drm_buffer_fd, &drm_src.drm_buffer_handle,
 		&drm_src.actual_size, src_alloc_flags);
+	src_allocated = true;
 
 	drm_buf_get_phy(drm_src.drm_buffer_handle);
 	/* fill image data */
@@ -145,19 +153,28 @@ int main()
 	if (IM_STATUS_NOERROR != ret) {
 		printf("%d, check error! %s\n", __LINE__,
 		       imStrError((IM_STATUS)ret));
-		return -1;
+		goto cleanup;
 	}
 
 	ret = imcopy(src_img, fb_img);
 
+cleanup:
 	if (src_handle)
 		releasebuffer_handle(src_handle);
 	if (fb_handle)
 		releasebuffer_handle(fb_handle);
-
-	drm_buf_destroy(drm_src.drm_buffer_fd, drm_src.drm_buffer_handle,
-			drm_src.drm_buf, drm_src.actual_size);
-
-	close(drm_fd);
-	return 0;
+	if (src_allocated)
+		drm_buf_destroy(drm_src.drm_buffer_fd, drm_src.drm_buffer_handle,
+				drm_src.drm_buf, drm_src.actual_size);
+	if (prime_fd >= 0)
+		close(prime_fd);
+	if (fb2)
+		drmModeFreeFB2(fb2);
+	if (crtc)
+		drmModeFreeCrtc(crtc);
+	if (res)
+		drmModeFreeResources(res);
+	if (drm_fd >= 0)
+		close(drm_fd);
+	return ret;
 }
