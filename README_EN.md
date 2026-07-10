@@ -71,8 +71,9 @@ The program loads an image from `/data` for copying.
 ├── build.sh                   # Build script
 ├── toolchain_linux.cmake     # Cross-compilation toolchain
 ├── CMakeLists.txt            # Top-level CMake
-├── src/                      # Main program
-│   └── rga_drm_img_display.cpp
+├── examples/                 # Example programs
+│   ├── rga_drm_img_display.cpp
+│   └── cpu_drm_img_display.cpp
 ├── utils/                    # Utility library (allocator, libdrm wrappers)
 ├── include/                  # RGA API headers
 ├── libs/                     # Prebuilt librga

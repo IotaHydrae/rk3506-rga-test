@@ -39,8 +39,8 @@ add_library(rga_utils STATIC
     utils/allocator/dma_alloc.cpp
 )
 
-# auto-discover test programs under src/
-file(GLOB TEST_SOURCES src/*.cpp)
+# auto-discover example programs under examples/
+file(GLOB TEST_SOURCES examples/*.cpp)
 foreach(TEST_SRC ${TEST_SOURCES})
     get_filename_component(TEST_NAME ${TEST_SRC} NAME_WE)
     add_executable(${TEST_NAME} ${TEST_SRC})

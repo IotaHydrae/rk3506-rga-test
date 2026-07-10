@@ -71,8 +71,9 @@ cd /root
 ├── build.sh                   # 编译脚本
 ├── toolchain_linux.cmake     # 交叉编译工具链
 ├── CMakeLists.txt            # 顶层 CMake
-├── src/                      # 主程序
-│   └── rga_drm_img_display.cpp
+├── examples/                 # 示例程序
+│   ├── rga_drm_img_display.cpp
+│   └── cpu_drm_img_display.cpp
 ├── utils/                    # 工具库（allocator、libdrm 封装）
 ├── include/                  # RGA API 头文件
 ├── libs/                     # 预编译 librga
