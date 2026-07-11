@@ -15,25 +15,29 @@ Cross-compiles via `toolchain_linux.cmake` → `arm-buildroot-linux-gnueabihf-g+
 
 ## Architecture
 
-`examples/` contains standalone example programs that share the `utils/` library. Each `.cpp` under `examples/` is auto-discovered and built as a separate executable.
+`examples/` contains standalone end-to-end demo programs. `tests/` contains RGA API unit tests that self-validate and report PASS/FAIL.
 
-The current test `rga_drm_img_display` reads the DRM framebuffer from `/dev/dri/card0`, loads an RGBA8888 image from `/data`, and uses the RGA hardware engine (`imcopy`) to blit the image onto the display.
+Each `.cpp` under `examples/` and `tests/` is auto-discovered and built as a separate executable.
 
 ### Layering
 
 ```
-examples/*.cpp                  ← example programs (one executable per file)
- ├── librga_utils.a             ← utils/ (static library)
- │    ├── DRM dumb-buffer alloc ← utils/allocator/drm_alloc.cpp (drm_buf_alloc/destroy)
- │    └── Image I/O + patterns  ← utils/utils.cpp (read/write_image, draw_rgba)
- ├── DRM/KMS ops                ← libdrm (open card0, get CRTC/FB, drmPrimeHandleToFD)
- └── RGA blit (imcopy)          ← librga (importbuffer_fd, wrapbuffer_handle, imcopy)
+examples/*.cpp                   ← demo programs (one executable per file)
+tests/*.cpp                      ← API unit tests (one executable per file)
+ ├── librga_utils.a              ← utils/ (static library)
+ │    ├── DRM dumb-buffer alloc  ← utils/allocator/drm_alloc.cpp (drm_buf_alloc/destroy)
+ │    └── Image I/O + patterns   ← utils/utils.cpp (read/write_image, draw_rgba)
+ ├── DRM/KMS ops                 ← libdrm (open card0, get CRTC/FB, drmPrimeHandleToFD)
+ └── RGA blit (imcopy)           ← librga (importbuffer_fd, wrapbuffer_handle, imcopy)
 ```
 
 ### Key details
 
-- `utils/` builds as a static library (`librga_utils.a`), linked by all test programs.
+- `utils/` builds as a static library (`librga_utils.a`), linked by all programs.
 - Adding a new example: drop a `.cpp` into `examples/` — CMake auto-discovers it via `file(GLOB)`.
+- Adding a new test: drop a `.cpp` into `tests/` — same auto-discovery mechanism.
+- `tests/test_utils.h` provides shared RAII buffer wrappers (`TestBuffer`, `RgaImport`), test macros (`TEST_CHECK`, `TEST_PASS`), and pixel verification helpers.
+- Tests return exit code equal to the failure count (0 = all pass); exit code 77 means skipped (no DRM device).
 - **drm_alloc** dynamically loads `libdrm.so` at runtime via `dlopen` in a `__attribute__((constructor))` function, accessing `DRM_IOCTL_ROCKCHIP_GEM_GET_PHYS` to retrieve physical addresses for RGA hardware.
 - **DRM fourcc → RGA format** conversion in `drm_to_rga_format()` — ARGB8888 maps to `RK_FORMAT_BGRA_8888` (channel swap intentional due to endianness).
 - `drm_alloc.cpp` guarded by `#if defined(__arm__) || defined(__aarch64__)` — compiles only for ARM targets.

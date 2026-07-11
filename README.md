@@ -65,6 +65,20 @@ cd /root
 
 程序会尝试从 `/data` 读取图像文件进行拷贝。
 
+## 测试
+
+`tests/` 目录包含 RGA API 单元测试，每个测试独立验证一个 RGA 接口：
+
+```bash
+# 拷贝测试到开发板
+scp build/test_im* root@192.168.50.133:/data/
+
+# 在开发板上运行全部测试
+for t in /data/test_im*; do echo "=== $t ===" && $t; done
+```
+
+测试输出 PASS/FAIL 行，退出码为失败数（0 = 全部通过，77 = 跳过/无 DRM 设备）。
+
 ## 项目结构
 
 ```
@@ -74,6 +88,14 @@ cd /root
 ├── examples/                 # 示例程序
 │   ├── rga_drm_img_display.cpp
 │   └── cpu_drm_img_display.cpp
+├── tests/                    # RGA API 单元测试
+│   ├── test_utils.h          #   共享测试工具
+│   ├── test_imcopy.cpp       #   imcopy 基础拷贝
+│   ├── test_imfill.cpp       #   imfill / imrectangle 填充
+│   ├── test_imcvtcolor.cpp   #   imcvtcolor 色彩空间转换
+│   ├── test_imresize.cpp     #   imresize 缩放
+│   ├── test_imrotate.cpp     #   imrotate 旋转
+│   └── test_imflip.cpp       #   imflip 翻转
 ├── utils/                    # 工具库（allocator、libdrm 封装）
 ├── include/                  # RGA API 头文件
 ├── libs/                     # 预编译 librga

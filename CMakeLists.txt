@@ -40,8 +40,16 @@ add_library(rga_utils STATIC
 )
 
 # auto-discover example programs under examples/
-file(GLOB TEST_SOURCES examples/*.cpp)
-foreach(TEST_SRC ${TEST_SOURCES})
+file(GLOB EXAMPLE_SOURCES examples/*.cpp)
+foreach(EXAMPLE_SRC ${EXAMPLE_SOURCES})
+    get_filename_component(EXAMPLE_NAME ${EXAMPLE_SRC} NAME_WE)
+    add_executable(${EXAMPLE_NAME} ${EXAMPLE_SRC})
+    target_link_libraries(${EXAMPLE_NAME} rga_utils ${RGA_LIB} drm dl)
+endforeach()
+
+# auto-discover test programs under tests/
+file(GLOB TEST_PROGRAMS tests/*.cpp)
+foreach(TEST_SRC ${TEST_PROGRAMS})
     get_filename_component(TEST_NAME ${TEST_SRC} NAME_WE)
     add_executable(${TEST_NAME} ${TEST_SRC})
     target_link_libraries(${TEST_NAME} rga_utils ${RGA_LIB} drm dl)

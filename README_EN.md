@@ -65,6 +65,20 @@ cd /root
 
 The program loads an image from `/data` for copying.
 
+## Tests
+
+The `tests/` directory contains RGA API unit tests, each independently validating one RGA interface:
+
+```bash
+# Copy tests to the board
+scp build/test_im* root@192.168.50.133:/data/
+
+# Run all tests on the board
+for t in /data/test_im*; do echo "=== $t ===" && $t; done
+```
+
+Tests print PASS/FAIL lines. Exit code equals failure count (0 = all pass, 77 = skipped / no DRM device).
+
 ## Project Structure
 
 ```
@@ -74,6 +88,14 @@ The program loads an image from `/data` for copying.
 ├── examples/                 # Example programs
 │   ├── rga_drm_img_display.cpp
 │   └── cpu_drm_img_display.cpp
+├── tests/                    # RGA API unit tests
+│   ├── test_utils.h          #   shared test helpers
+│   ├── test_imcopy.cpp       #   imcopy basic copy
+│   ├── test_imfill.cpp       #   imfill / imrectangle fill
+│   ├── test_imcvtcolor.cpp   #   imcvtcolor color conversion
+│   ├── test_imresize.cpp     #   imresize scaling
+│   ├── test_imrotate.cpp     #   imrotate rotation
+│   └── test_imflip.cpp       #   imflip horizontal/vertical
 ├── utils/                    # Utility library (allocator, libdrm wrappers)
 ├── include/                  # RGA API headers
 ├── libs/                     # Prebuilt librga
